@@ -27,20 +27,39 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
-    const toysCollection = client.db("insertToysDB").collection("toys")
+    const toysCollection = client.db("insertToysDB").collection("toys");
 
-    app.get('/addtoys',async(req,res)=>{
-        const cursor = toysCollection.find();
-        const result = await cursor.toArray();
-        res.send(result);
-    })
-
-
+    app.get("/addtoys", async (req, res) => {
+      const cursor = toysCollection.find();
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
     app.post("/addtoys", async (req, res) => {
       const toys = req.body;
       const result = await toysCollection.insertOne(toys);
       res.send(result);
+    });
+
+    app.patch("/toys/:id", async (req, res) => {
+      const id = req.params.id;
+      const updatedToyData = req.body;
+      const query = { id: new ObjectId(id) };
+      const updatedToys = {
+        $set: {
+          ...updatedToyData,
+        },
+      };
+      const result = await toysCollection.updateOne(query, updatedToys);
+      res.send(result);
+    });
+
+    app.delete("/toys/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { id: new ObjectId(id) };
+      const result = await toysCollection.deleteOne(query);
+      res.send(result);
+
     });
 
     // Send a ping to confirm a successful connection
