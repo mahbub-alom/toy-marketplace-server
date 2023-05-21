@@ -28,10 +28,18 @@ async function run() {
     const toysCollection = client.db("insertToysDB").collection("toys");
 
     app.get("/addtoys", async (req, res) => {
-      const cursor = toysCollection.find();
-      const result = await cursor.toArray();
+      // const cursor = toysCollection.find();
+      const result = await toysCollection.find().limit(20).toArray();
       res.send(result);
     });
+
+    app.get('addtoys/:id',async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id) };
+      const result = await toysCollection.findOne(query);
+      res.send(result)
+    })
+
 
     app.post("/addtoys", async (req, res) => {
       const toys = req.body;
@@ -54,19 +62,19 @@ async function run() {
       }
       const result =await toysCollection.find(query).toArray();
       res.send(result)
-
     })
 
-    app.patch("/toys/:id", async (req, res) => {
+    app.put("/addtoys/:id", async (req, res) => {
       const id = req.params.id;
-      const updatedToyData = req.body;
-      const query = {_id: new ObjectId(id) };
-      const updatedToys = {
+      const filter = {_id: new ObjectId(id) };
+      const options ={upsert:true}
+      const updatedToys =req.body;
+      const updatedToysData = {
         $set: {
-          ...updatedToyData,
+          toyName:updatedToys.toyName, sellerName:updatedToys.sellerName, sellerEmail:updatedToys.sellerEmail,price:updatedToys.price, rating:updatedToys.rating, quantity:updatedToys.quantity, description:updatedToys.description,photo:updatedToys.photo
         },
       };
-      const result = await toysCollection.updateOne(query, updatedToys);
+      const result = await toysCollection.updateOne(filter, updatedToysData, options);
       res.send(result);
     });
 
@@ -75,7 +83,6 @@ async function run() {
       const query = {_id: new ObjectId(id) };
       const result = await toysCollection.deleteOne(query);
       res.send(result);
-
     });
 
     // Send a ping to confirm a successful connection
