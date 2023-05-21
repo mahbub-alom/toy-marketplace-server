@@ -2,14 +2,13 @@ const express = require("express");
 const app = express();
 const cors = require("cors");
 const port = process.env.PORT || 5000;
-require('dotenv').config();
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 app.use(cors());
 app.use(express.json());
 
-const uri =
-  `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qud1tkv.mongodb.net/?retryWrites=true&w=majority`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.qud1tkv.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -27,19 +26,40 @@ async function run() {
 
     const toysCollection = client.db("insertToysDB").collection("toys");
 
+    //Creating index on two fields
+    const indexKeys = { toyName: 1 };
+    const indexOptions = {name:"toyName"};
+    const result =await toysCollection.createIndex(indexKeys, indexOptions);
+
+
+    app.get('/searchToy/:text',async(req,res)=>{
+      const searchText = req.params.text;
+      console.log(searchText);
+      const result = await toysCollection.find({
+        $or:[
+          {toyName:{$regex:searchText, $options:"i"}},
+        ]
+      }).toArray();
+      res.send(result);
+    })
+    
+
+
+
+
+
     app.get("/addtoys", async (req, res) => {
       // const cursor = toysCollection.find();
       const result = await toysCollection.find().limit(20).toArray();
       res.send(result);
     });
 
-    app.get('addtoys/:id',async(req,res)=>{
+    app.get("addtoys/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id) };
+      const query = { _id: new ObjectId(id) };
       const result = await toysCollection.findOne(query);
-      res.send(result)
-    })
-
+      res.send(result);
+    });
 
     app.post("/addtoys", async (req, res) => {
       const toys = req.body;
@@ -49,41 +69,54 @@ async function run() {
 
     app.get("/addtoys/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id) };
+      const filter = { _id: new ObjectId(id) };
       const data = await toysCollection.findOne(filter);
       res.send(data);
-    })
+    });
 
-    app.get('/mytoys',async(req,res)=>{
-      const email=req.query.email;
+    app.get("/mytoys", async (req, res) => {
+      const email = req.query.email;
       const sortValue = req.query?.sort;
-      console.log(sortValue);
-      let query= {}
-      if(req.query?.email){
-        query={sellerEmail:email}
+      let query = {};
+      if (req.query?.email) {
+        query = { sellerEmail: email };
       }
-      const val = sortValue === 'dese' ? -1 : 1 ;
-      const result =await toysCollection.find(query).sort({price:val}).toArray();
-      res.send(result)
-    })
+      const val = sortValue === "dese" ? -1 : 1;
+      const result = await toysCollection
+        .find(query)
+        .sort({ price: val })
+        .toArray();
+      res.send(result);
+    });
 
     app.put("/addtoys/:id", async (req, res) => {
       const id = req.params.id;
-      const filter = {_id: new ObjectId(id) };
-      const options ={upsert:true}
-      const updatedToys =req.body;
+      const filter = { _id: new ObjectId(id) };
+      const options = { upsert: true };
+      const updatedToys = req.body;
       const updatedToysData = {
         $set: {
-          toyName:updatedToys.toyName, sellerName:updatedToys.sellerName, sellerEmail:updatedToys.sellerEmail,price:updatedToys.price, rating:updatedToys.rating, quantity:updatedToys.quantity, description:updatedToys.description,photo:updatedToys.photo
+          toyName: updatedToys.toyName,
+          sellerName: updatedToys.sellerName,
+          sellerEmail: updatedToys.sellerEmail,
+          price: updatedToys.price,
+          rating: updatedToys.rating,
+          quantity: updatedToys.quantity,
+          description: updatedToys.description,
+          photo: updatedToys.photo,
         },
       };
-      const result = await toysCollection.updateOne(filter, updatedToysData, options);
+      const result = await toysCollection.updateOne(
+        filter,
+        updatedToysData,
+        options
+      );
       res.send(result);
     });
 
     app.delete("/toys/:id", async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id) };
+      const query = { _id: new ObjectId(id) };
       const result = await toysCollection.deleteOne(query);
       res.send(result);
     });
